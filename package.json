@@ -1,0 +1,33 @@
+{
+  "name": "sevk",
+  "version": "0.0.1",
+  "description": "Node.js SDK for Sevk API",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": "Sevk <dev@sevk.io>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sevk-io/sevk-node"
+  },
+  "homepage": "https://sevk.io",
+  "keywords": [
+    "sevk",
+    "email",
+    "api",
+    "sdk"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test tests/"
+  },
+  "dependencies": {
+    "@types/prismjs": "^1.26.5",
+    "prismjs": "^1.30.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "@types/bun": "^1.0.0"
+  }
+}
