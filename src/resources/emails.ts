@@ -29,28 +29,14 @@ interface BaseEmailOptions {
 }
 
 /**
- * Email options with HTML content
+ * Send email options - provide `html`, `markup`, or just `text`
  */
-interface HtmlEmailOptions extends BaseEmailOptions {
-  html: string;
-  markup?: never;
+export interface SendEmailOptions extends BaseEmailOptions {
+  /** HTML content */
+  html?: string;
+  /** Sevk markup content - will be automatically rendered to HTML by the SDK */
+  markup?: string;
 }
-
-/**
- * Email options with Sevk Markup content (automatically rendered to HTML)
- */
-interface MarkupEmailOptions extends BaseEmailOptions {
-  html?: never;
-  /**
-   * Sevk markup content - will be automatically rendered to HTML by the SDK
-   */
-  markup: string;
-}
-
-/**
- * Send email options - use either `html` or `markup`, not both
- */
-export type SendEmailOptions = HtmlEmailOptions | MarkupEmailOptions;
 
 export interface SendEmailResponse {
   id?: string;
