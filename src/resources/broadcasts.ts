@@ -30,7 +30,8 @@ export interface CreateBroadcastOptions {
   audienceId?: string;
   topicId?: string;
   segmentId?: string;
-  senderName?: string;
+  senderName: string;
+  senderEmail?: string;
   domainId: string;
   scheduledAt?: string;
 }
@@ -97,5 +98,21 @@ export class Broadcasts extends BaseResource {
 
   async getAnalytics(id: string): Promise<any> {
     return this.client.get(`/broadcasts/${id}/analytics`);
+  }
+
+  async getStatus(id: string): Promise<any> {
+    return this.client.get(`/broadcasts/${id}/status`);
+  }
+
+  async getEmails(id: string, options?: { page?: number; limit?: number }): Promise<any> {
+    return this.client.get(`/broadcasts/${id}/emails`, options);
+  }
+
+  async estimateCost(id: string): Promise<any> {
+    return this.client.get(`/broadcasts/${id}/estimate-cost`);
+  }
+
+  async listActive(): Promise<any> {
+    return this.client.get('/broadcasts/active');
   }
 }

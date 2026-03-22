@@ -61,6 +61,10 @@ export class Segments extends BaseResource {
     return this.client.delete<void>(`/audiences/${audienceId}/segments/${id}`);
   }
 
+  async calculate(audienceId: string, segmentId: string): Promise<any> {
+    return this.client.get(`/audiences/${audienceId}/segments/${segmentId}/calculate`);
+  }
+
   async preview(audienceId: string, data: any): Promise<any> {
     return this.client.post(`/audiences/${audienceId}/segments/preview`, data);
   }

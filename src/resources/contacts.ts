@@ -59,4 +59,16 @@ export class Contacts extends BaseResource {
   async delete(id: string): Promise<void> {
     return this.client.delete<void>(`/contacts/${id}`);
   }
+
+  async bulkUpdate(data: Record<string, any>): Promise<any> {
+    return this.client.put('/contacts/bulk-update', data);
+  }
+
+  async import(data: { contacts: Array<{ email: string; subscribed?: boolean; data?: Record<string, unknown> }>; audienceId?: string }): Promise<any> {
+    return this.client.post('/contacts/import', data);
+  }
+
+  async getEvents(id: string): Promise<any> {
+    return this.client.get(`/contacts/${id}/events`);
+  }
 }

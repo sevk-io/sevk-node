@@ -68,4 +68,8 @@ export class Audiences extends BaseResource {
   async removeContact(id: string, contactId: string): Promise<void> {
     return this.client.delete<void>(`/audiences/${id}/contacts/${contactId}`);
   }
+
+  async listContacts(id: string, query?: Record<string, any>): Promise<any> {
+    return this.client.get(`/audiences/${id}/contacts`, query);
+  }
 }

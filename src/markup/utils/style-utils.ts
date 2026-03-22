@@ -30,6 +30,8 @@ export function extractStyleAttributes(source: AttributeSource): Record<string, 
   const width = getAttribute(source, 'width')
   const height = getAttribute(source, 'height')
   const maxWidth = getAttribute(source, 'max-width')
+  const maxHeight = getAttribute(source, 'max-height')
+  const minWidth = getAttribute(source, 'min-width')
   const minHeight = getAttribute(source, 'min-height')
 
   // Spacing - Padding
@@ -63,9 +65,22 @@ export function extractStyleAttributes(source: AttributeSource): Record<string, 
   const borderBottomLeftRadius = getAttribute(source, 'border-bottom-left-radius')
   const borderBottomRightRadius = getAttribute(source, 'border-bottom-right-radius')
 
+  // Background image
+  const backgroundImage = getAttribute(source, 'background-image')
+  const backgroundSize = getAttribute(source, 'background-size')
+  const backgroundPosition = getAttribute(source, 'background-position')
+  const backgroundRepeat = getAttribute(source, 'background-repeat')
+
   // Apply all attributes conditionally
   if (textColor) style.color = textColor
   if (backgroundColor) style['background-color'] = backgroundColor
+  if (backgroundImage) style['background-image'] = `url('${backgroundImage}')`
+  if (backgroundSize) style['background-size'] = backgroundSize
+  else if (backgroundImage) style['background-size'] = 'cover'
+  if (backgroundPosition) style['background-position'] = backgroundPosition
+  else if (backgroundImage) style['background-position'] = 'center'
+  if (backgroundRepeat) style['background-repeat'] = backgroundRepeat
+  else if (backgroundImage) style['background-repeat'] = 'no-repeat'
   if (fontSize) style['font-size'] = fontSize
   if (fontFamily) style['font-family'] = fontFamily
   if (fontWeight) style['font-weight'] = fontWeight
@@ -77,6 +92,8 @@ export function extractStyleAttributes(source: AttributeSource): Record<string, 
   if (width) style.width = width
   if (height) style.height = height
   if (maxWidth) style['max-width'] = maxWidth
+  if (maxHeight) style['max-height'] = maxHeight
+  if (minWidth) style['min-width'] = minWidth
   if (minHeight) style['min-height'] = minHeight
 
   // Spacing - padding

@@ -35,7 +35,4 @@ coverage/
 *.tmp
 *.temp
 .cache/
-
 markup-output.html
-test_email.ts
-test_markup_output.ts

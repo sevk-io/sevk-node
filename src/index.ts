@@ -1,5 +1,4 @@
-import { Client } from './client';
-import type { SevkOptions } from './client';
+import { Client, type SevkOptions } from './client';
 import { Emails } from './resources/emails';
 import { Contacts } from './resources/contacts';
 import { Audiences } from './resources/audiences';
@@ -9,7 +8,9 @@ import { Segments } from './resources/segments';
 import { Broadcasts } from './resources/broadcasts';
 import { Domains } from './resources/domains';
 import { Subscriptions } from './resources/subscriptions';
-import { generateEmailHTML, generateEmailFromMarkup } from './markup';
+import { Webhooks } from './resources/webhooks';
+import { Events } from './resources/events';
+import { render } from './markup';
 
 export type { SevkOptions } from './client';
 
@@ -29,7 +30,7 @@ export type { SevkOptions } from './client';
  * `);
  * ```
  */
-export const render = generateEmailFromMarkup;
+export { render };
 
 export class Sevk {
   public emails: Emails;
@@ -41,6 +42,8 @@ export class Sevk {
   public broadcasts: Broadcasts;
   public domains: Domains;
   public subscriptions: Subscriptions;
+  public webhooks: Webhooks;
+  public events: Events;
   private client: Client;
 
   /**
@@ -71,6 +74,16 @@ export class Sevk {
     this.broadcasts = new Broadcasts(this.client);
     this.domains = new Domains(this.client);
     this.subscriptions = new Subscriptions(this.client);
+    this.webhooks = new Webhooks(this.client);
+    this.events = new Events(this.client);
+  }
+
+  /**
+   * Get project usage and limits
+   * @returns Usage and limits data including balance, email stats, and resource counts
+   */
+  async getUsage() {
+    return this.client.get('/limits');
   }
 }
 
@@ -83,3 +96,5 @@ export * from './resources/segments';
 export * from './resources/broadcasts';
 export * from './resources/domains';
 export * from './resources/subscriptions';
+export * from './resources/webhooks';
+export * from './resources/events';

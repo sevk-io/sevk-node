@@ -66,4 +66,8 @@ export class Topics extends BaseResource {
   async removeContact(audienceId: string, id: string, contactId: string): Promise<void> {
     return this.client.delete<void>(`/audiences/${audienceId}/topics/${id}/contacts/${contactId}`);
   }
+
+  async listContacts(audienceId: string, topicId: string, options?: { page?: number; limit?: number }): Promise<any> {
+    return this.client.get(`/audiences/${audienceId}/topics/${topicId}/contacts`, options);
+  }
 }
