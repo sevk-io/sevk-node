@@ -1,138 +1,213 @@
-/**
- * Sevk Block System
- *
- * Blocks are reusable templates built from existing sevk components.
- * Template syntax uses {%...%} to avoid conflict with {{...}} variable system.
- *
- * Template syntax:
- *   {%variable%}                          - inject config value
- *   {%variable ?? fallback%}             - inject with fallback
- *   {%#each array as alias%}...{%/each%} - iterate arrays
- *   {%alias.key%}                        - access current item in loop
- *   {%#if key%}...{%/if%}               - conditional (truthy check)
- *   {%#if key%}...{%else%}...{%/if%}    - conditional with else
- *   {%#if a && b%}                       - logical AND
- *   {%#if a || b%}                       - logical OR
- *   {%#if key == "value"%}               - string equality
- *   {%#if key != "value"%}               - string inequality
- *
- * Variable syntax {{...}} is preserved untouched for send-time replacement.
- */
+const MAX_EACH_ITEMS = 1000
+const MAX_EACH_OUTPUT = 2_000_000
+const MAX_TEMPLATE_WORK = 20_000_000
+const MAX_IF_ITERATIONS = 2000
 
-function isTruthy(val: unknown): boolean {
-  if (val === undefined || val === null || val === '' || val === false || val === 0) return false
-  if (Array.isArray(val) && val.length === 0) return false
+const isTruthy = (val: unknown): boolean => {
+  if (
+    val === undefined ||
+    val === null ||
+    val === "" ||
+    val === false ||
+    val === 0
+  )
+    return false
+  if (Array.isArray(val) && val.length === 0) {
+    return false
+  }
   return true
 }
 
-function evaluateCondition(expr: string, config: Record<string, unknown>): boolean {
+const evaluateCondition = (
+  expr: string,
+  config: Record<string, unknown>
+): boolean => {
   const trimmed = expr.trim()
 
-  // OR: split on ||, return true if any part is true
-  if (trimmed.includes('||')) {
-    return trimmed.split('||').some(part => evaluateCondition(part, config))
+  if (trimmed.includes("||")) {
+    return trimmed.split("||").some((part) => evaluateCondition(part, config))
   }
 
-  // AND: split on &&, return true if all parts are true
-  if (trimmed.includes('&&')) {
-    return trimmed.split('&&').every(part => evaluateCondition(part, config))
+  if (trimmed.includes("&&")) {
+    return trimmed.split("&&").every((part) => evaluateCondition(part, config))
   }
 
-  // Equality: key == "value"
   const eqMatch = trimmed.match(/^(\w+)\s*==\s*"([^"]*)"$/)
   if (eqMatch) {
-    return String(config[eqMatch[1]] ?? '') === eqMatch[2]
+    return String(config[eqMatch[1]] ?? "") === eqMatch[2]
   }
 
-  // Inequality: key != "value"
   const neqMatch = trimmed.match(/^(\w+)\s*!=\s*"([^"]*)"$/)
   if (neqMatch) {
-    return String(config[neqMatch[1]] ?? '') !== neqMatch[2]
+    return String(config[neqMatch[1]] ?? "") !== neqMatch[2]
   }
 
-  // Simple truthy check
   return isTruthy(config[trimmed])
 }
 
-export function renderTemplate(template: string, config: Record<string, unknown>): string {
-  let result = template
+const tooComplex = (): Error => new Error("Email markup is too complex to render")
+const outputExceeded = (): Error => new Error("Email block exceeds the maximum template output size")
 
-  // 1. Process {%#if condition%}...{%else%}...{%/if%} conditionals
-  // Process innermost first (body must not contain another {%#if)
-  let prev = ''
-  while (prev !== result) {
+export const renderTemplate = (
+  template: string,
+  config: Record<string, unknown>
+): string => {
+  let result = template
+  let rendered = 0
+
+  let prev = ""
+  let ifIterations = 0
+  let ifWork = 0
+  while (prev !== result && ifIterations++ < MAX_IF_ITERATIONS) {
+    ifWork += result.length
+    if (ifWork > MAX_TEMPLATE_WORK) {
+      throw tooComplex()
+    }
+
     prev = result
     result = result.replace(
       /\{%#if\s+([^%]+)%\}((?:(?!\{%#if\s)[\s\S])*?)\{%\/if%\}/,
       (_, condition, body) => {
         const condResult = evaluateCondition(condition, config)
-        const elseIdx = body.indexOf('{%else%}')
+        const elseIdx = body.indexOf("{%else%}")
         const trueBranch = elseIdx >= 0 ? body.slice(0, elseIdx) : body
-        const falseBranch = elseIdx >= 0 ? body.slice(elseIdx + 8) : ''
+        const falseBranch = elseIdx >= 0 ? body.slice(elseIdx + 8) : ""
         return condResult ? trueBranch : falseBranch
       }
     )
   }
 
-  // 2. Process {%#each key as alias%}...{%/each%} loops (alias is optional, defaults to "this")
-  result = result.replace(
-    /\{%#each\s+(\w+)(?:\s+as\s+(\w+))?%\}([\s\S]*?)\{%\/each%\}/g,
-    (_, key, alias, body) => {
-      const arr = config[key]
-      if (!Array.isArray(arr) || arr.length === 0) return ''
-      const itemName = alias || 'this'
-      return arr.map(item => {
-        let itemResult = body
-        // Replace {%alias.prop%} with item values
-        const itemRe = new RegExp(`\\{%${itemName}\\.(\\w+)%\\}`, 'g')
-        itemResult = itemResult.replace(
-          itemRe,
-          (__: string, prop: string) => String((item as Record<string, unknown>)[prop] ?? '')
-        )
-        // Replace {%variable%} with config values (parent scope)
-        itemResult = itemResult.replace(
-          /\{%(\w+)%\}/g,
-          (__: string, k: string) => String(config[k] ?? '')
-        )
-        return itemResult
-      }).join('')
-    }
-  )
+  if (result.includes("{%/each%}")) {
+    const openRe = /\{%#each\s+(\w+)(?:\s+as\s+(\w+))?%\}/g
+    let out = ""
+    let from = 0
+    let eachWork = 0
 
-  // 3. Process {%variable ?? fallback%} with fallback
+    while (from <= result.length) {
+      openRe.lastIndex = from
+      const om = openRe.exec(result)
+      if (!om) {
+        out += result.substring(from)
+        break
+      }
+
+      const bodyStart = openRe.lastIndex
+      const closeIdx = result.indexOf("{%/each%}", bodyStart)
+      if (closeIdx === -1) {
+        out += result.substring(from)
+        break
+      }
+
+      out += result.substring(from, om.index)
+      const arr = config[om[1]]
+
+      if (Array.isArray(arr) && arr.length > 0) {
+        if (arr.length > MAX_EACH_ITEMS) {
+          throw new Error(`Email block exceeds the maximum of ${MAX_EACH_ITEMS} loop items`)
+        }
+
+        const itemName = om[2] || "this"
+        const itemRe = new RegExp(`\\{%${itemName}\\.(\\w+)%\\}`, "g")
+        const body = result.substring(bodyStart, closeIdx)
+        const parts: string[] = []
+
+        for (const item of arr) {
+          eachWork += body.length + 16
+          if (eachWork > MAX_TEMPLATE_WORK) {
+            throw tooComplex()
+          }
+
+          let itemOut = 0
+          const chargeItem = (value: string): string => {
+            if (rendered + itemOut + value.length > MAX_EACH_OUTPUT) {
+              throw outputExceeded()
+            }
+            itemOut += value.length
+            return value
+          }
+          const itemResult = body
+            .replace(itemRe, (__: string, prop: string) =>
+              chargeItem(String((item as Record<string, unknown>)[prop] ?? ""))
+            )
+            .replace(/\{%(\w+)%\}/g, (__: string, key: string) =>
+              chargeItem(String(config[key] ?? ""))
+            )
+
+          parts.push(itemResult)
+          rendered += itemResult.length
+          if (rendered > MAX_EACH_OUTPUT) {
+            throw outputExceeded()
+          }
+        }
+
+        out += parts.join("")
+      }
+
+      from = closeIdx + 9
+    }
+
+    result = out
+  }
+
+  const charge = (value: string): string => {
+    if (rendered + value.length > MAX_EACH_OUTPUT) {
+      throw outputExceeded()
+    }
+    rendered += value.length
+    return value
+  }
+
   result = result.replace(
-    /\{%(\w+)\s*\?\?\s*([^%]+)%\}/g,
+    /\{%(\w+)\s*\?\?([^%]+)%\}/g,
     (_, key, fallback) => {
       const val = config[key]
-      if (val !== undefined && val !== null && val !== '') return String(val)
-      return fallback.trim()
+      if (val !== undefined && val !== null && val !== "") {
+        return charge(String(val))
+      }
+      return charge(fallback.trim())
     }
   )
 
-  // 4. Process {%variable%} simple injection
-  result = result.replace(
-    /\{%(\w+)%\}/g,
-    (_, key) => String(config[key] ?? '')
-  )
+  result = result.replace(/\{%(\w+)%\}/g, (_, key) => charge(String(config[key] ?? "")))
 
   return result
 }
 
-/**
- * Process a <block> tag.
- * Reads template and config from attributes, renders template with config.
- * Returns sevk markup that the existing renderer will process.
- */
-export function processBlockTag(attrs: Record<string, string>, inner?: string): string {
-  const template = inner?.trim() || attrs['template']
-  if (!template) return ''
+export const processBlockTag = (
+  attrs: Record<string, string>,
+  inner?: string
+): string => {
+  const template = inner?.trim() || attrs["template"]
+  if (!template) {
+    return ""
+  }
 
-  const configStr = (attrs['config'] || '{}').replace(/'/g, '"').replace(/&quot;/g, '"').replace(/&amp;/g, '&')
+  const configStr = (attrs["config"] || "{}").replace(
+    /&(?:amp|quot|apos|lt|gt|#39|#x27|#34|#x22);/gi,
+    entity => {
+      switch (entity.toLowerCase()) {
+        case "&amp;": return "&"
+        case "&quot;":
+        case "&#34;":
+        case "&#x22;": return '"'
+        case "&apos;":
+        case "&#39;":
+        case "&#x27;": return "'"
+        case "&lt;": return "<"
+        case "&gt;": return ">"
+        default: return entity
+      }
+    }
+  )
   let config: Record<string, unknown>
   try {
     config = JSON.parse(configStr)
   } catch {
-    config = {}
+    try {
+      config = JSON.parse(configStr.replace(/'/g, '"'))
+    } catch {
+      config = {}
+    }
   }
 
   return renderTemplate(template, config)

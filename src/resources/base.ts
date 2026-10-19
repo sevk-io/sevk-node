@@ -1,5 +1,5 @@
-import { Client } from '../client';
+import { Client } from "../client"
 
 export class BaseResource {
-  constructor(protected client: Client) {}
+  constructor(protected readonly client: Client) {}
 }
