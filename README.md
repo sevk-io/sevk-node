@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="https://sevk.io/logo.png" alt="Sevk" width="120" />
+  <img src="https://sevk.io/logo.png" alt="sevk" width="120" />
 </p>
 
-<h1 align="center">Sevk Node.js SDK</h1>
+<h1 align="center">sevk Node.js SDK</h1>
 
 <p align="center">
-  Official Node.js SDK for <a href="https://sevk.io">Sevk</a> email platform.
+  Official Node.js SDK for <a href="https://sevk.io">sevk</a> email platform.
 </p>
 
 <p align="center">
@@ -29,7 +29,7 @@ const sevk = new Sevk('your-api-key');
 sevk.emails.send({
   to: 'recipient@example.com',
   from: 'hello@yourdomain.com',
-  subject: 'Hello from Sevk!',
+  subject: 'Hello from sevk!',
   html: '<h1>Welcome!</h1>'
 });
 ```

@@ -1,196 +1,214 @@
-/**
- * Attribute source type - Record<string, string>
- */
 type AttributeSource = Record<string, string>
 
-/**
- * Get attribute value from source (Record)
- */
-function getAttribute(source: AttributeSource, name: string): string | null {
+const getAttribute = (source: AttributeSource, name: string): string | null => {
   return source[name] || null
 }
 
-/**
- * Extract all styling attributes from an element or attribute record
- */
-export function extractStyleAttributes(source: AttributeSource): Record<string, string> {
+const setStyleAttribute = (
+  style: Record<string, string>,
+  name: string,
+  value: string | null
+): void => {
+  if (value) {
+    style[name] = value
+  }
+}
+
+export const extractStyleAttributes = (
+  source: AttributeSource
+): Record<string, string> => {
   const style: Record<string, string> = {}
 
-  // Typography attributes
-  const textColor = getAttribute(source, 'text-color') || getAttribute(source, 'color')
-  const backgroundColor = getAttribute(source, 'background-color')
-  const fontSize = getAttribute(source, 'font-size')
-  const fontFamily = getAttribute(source, 'font-family')
-  const fontWeight = getAttribute(source, 'font-weight')
-  const lineHeight = getAttribute(source, 'line-height')
-  const textAlign = getAttribute(source, 'text-align')
-  const textDecoration = getAttribute(source, 'text-decoration')
+  const textColor =
+    getAttribute(source, "text-color") || getAttribute(source, "color")
+  const backgroundColor = getAttribute(source, "background-color")
+  const fontSize = getAttribute(source, "font-size")
+  const fontFamily = getAttribute(source, "font-family")
+  const fontWeight = getAttribute(source, "font-weight")
+  const lineHeight = getAttribute(source, "line-height")
+  const textAlign = getAttribute(source, "text-align")
+  const textDecoration = getAttribute(source, "text-decoration")
 
-  // Dimensions
-  const width = getAttribute(source, 'width')
-  const height = getAttribute(source, 'height')
-  const maxWidth = getAttribute(source, 'max-width')
-  const maxHeight = getAttribute(source, 'max-height')
-  const minWidth = getAttribute(source, 'min-width')
-  const minHeight = getAttribute(source, 'min-height')
+  const width = getAttribute(source, "width")
+  const height = getAttribute(source, "height")
+  const maxWidth = getAttribute(source, "max-width")
+  const maxHeight = getAttribute(source, "max-height")
+  const minWidth = getAttribute(source, "min-width")
+  const minHeight = getAttribute(source, "min-height")
 
-  // Spacing - Padding
-  const padding = getAttribute(source, 'padding')
-  const paddingTop = getAttribute(source, 'padding-top')
-  const paddingRight = getAttribute(source, 'padding-right')
-  const paddingBottom = getAttribute(source, 'padding-bottom')
-  const paddingLeft = getAttribute(source, 'padding-left')
+  const padding = getAttribute(source, "padding")
+  const paddingTop = getAttribute(source, "padding-top")
+  const paddingRight = getAttribute(source, "padding-right")
+  const paddingBottom = getAttribute(source, "padding-bottom")
+  const paddingLeft = getAttribute(source, "padding-left")
 
-  // Spacing - Margin
-  const margin = getAttribute(source, 'margin')
-  const marginTop = getAttribute(source, 'margin-top')
-  const marginRight = getAttribute(source, 'margin-right')
-  const marginBottom = getAttribute(source, 'margin-bottom')
-  const marginLeft = getAttribute(source, 'margin-left')
+  const margin = getAttribute(source, "margin")
+  const marginTop = getAttribute(source, "margin-top")
+  const marginRight = getAttribute(source, "margin-right")
+  const marginBottom = getAttribute(source, "margin-bottom")
+  const marginLeft = getAttribute(source, "margin-left")
 
-  // Borders
-  const border = getAttribute(source, 'border')
-  const borderTop = getAttribute(source, 'border-top')
-  const borderRight = getAttribute(source, 'border-right')
-  const borderBottom = getAttribute(source, 'border-bottom')
-  const borderLeft = getAttribute(source, 'border-left')
-  const borderColor = getAttribute(source, 'border-color')
-  const borderWidth = getAttribute(source, 'border-width')
-  const borderStyle = getAttribute(source, 'border-style')
+  const border = getAttribute(source, "border")
+  const borderTop = getAttribute(source, "border-top")
+  const borderRight = getAttribute(source, "border-right")
+  const borderBottom = getAttribute(source, "border-bottom")
+  const borderLeft = getAttribute(source, "border-left")
+  const borderColor = getAttribute(source, "border-color")
+  const borderWidth = getAttribute(source, "border-width")
+  const borderStyle = getAttribute(source, "border-style")
 
-  // Border Radius
-  const borderRadius = getAttribute(source, 'border-radius')
-  const borderTopLeftRadius = getAttribute(source, 'border-top-left-radius')
-  const borderTopRightRadius = getAttribute(source, 'border-top-right-radius')
-  const borderBottomLeftRadius = getAttribute(source, 'border-bottom-left-radius')
-  const borderBottomRightRadius = getAttribute(source, 'border-bottom-right-radius')
+  const borderRadius = getAttribute(source, "border-radius")
+  const borderTopLeftRadius = getAttribute(source, "border-top-left-radius")
+  const borderTopRightRadius = getAttribute(source, "border-top-right-radius")
+  const borderBottomLeftRadius = getAttribute(
+    source,
+    "border-bottom-left-radius"
+  )
+  const borderBottomRightRadius = getAttribute(
+    source,
+    "border-bottom-right-radius"
+  )
 
-  // Background image
-  const backgroundImage = getAttribute(source, 'background-image')
-  const backgroundSize = getAttribute(source, 'background-size')
-  const backgroundPosition = getAttribute(source, 'background-position')
-  const backgroundRepeat = getAttribute(source, 'background-repeat')
+  const backgroundImage = getAttribute(source, "background-image")
+  const backgroundSize = getAttribute(source, "background-size")
+  const backgroundPosition = getAttribute(source, "background-position")
+  const backgroundRepeat = getAttribute(source, "background-repeat")
 
-  // Apply all attributes conditionally
-  if (textColor) style.color = textColor
-  if (backgroundColor) style['background-color'] = backgroundColor
-  if (backgroundImage) style['background-image'] = `url('${backgroundImage}')`
-  if (backgroundSize) style['background-size'] = backgroundSize
-  else if (backgroundImage) style['background-size'] = 'cover'
-  if (backgroundPosition) style['background-position'] = backgroundPosition
-  else if (backgroundImage) style['background-position'] = 'center'
-  if (backgroundRepeat) style['background-repeat'] = backgroundRepeat
-  else if (backgroundImage) style['background-repeat'] = 'no-repeat'
-  if (fontSize) style['font-size'] = fontSize
-  if (fontFamily) style['font-family'] = fontFamily
-  if (fontWeight) style['font-weight'] = fontWeight
-  if (lineHeight) style['line-height'] = lineHeight
-  if (textAlign) style['text-align'] = textAlign
-  if (textDecoration) style['text-decoration'] = textDecoration
+  setStyleAttribute(style, "color", textColor)
+  setStyleAttribute(style, "background-color", backgroundColor)
+  setStyleAttribute(
+    style,
+    "background-image",
+    backgroundImage ? `url('${backgroundImage}')` : null
+  )
+  setStyleAttribute(
+    style,
+    "background-size",
+    backgroundSize || (backgroundImage ? "cover" : null)
+  )
+  setStyleAttribute(
+    style,
+    "background-position",
+    backgroundPosition || (backgroundImage ? "center" : null)
+  )
+  setStyleAttribute(
+    style,
+    "background-repeat",
+    backgroundRepeat || (backgroundImage ? "no-repeat" : null)
+  )
 
-  // Dimensions
-  if (width) style.width = width
-  if (height) style.height = height
-  if (maxWidth) style['max-width'] = maxWidth
-  if (maxHeight) style['max-height'] = maxHeight
-  if (minWidth) style['min-width'] = minWidth
-  if (minHeight) style['min-height'] = minHeight
+  setStyleAttribute(style, "font-size", fontSize)
+  setStyleAttribute(style, "font-family", fontFamily)
+  setStyleAttribute(style, "font-weight", fontWeight)
+  setStyleAttribute(style, "line-height", lineHeight)
+  setStyleAttribute(style, "text-align", textAlign)
+  setStyleAttribute(style, "text-decoration", textDecoration)
 
-  // Spacing - padding
-  if (padding) {
-    style.padding = padding
-  } else {
-    if (paddingTop) style['padding-top'] = paddingTop
-    if (paddingRight) style['padding-right'] = paddingRight
-    if (paddingBottom) style['padding-bottom'] = paddingBottom
-    if (paddingLeft) style['padding-left'] = paddingLeft
-  }
+  setStyleAttribute(style, "width", width)
+  setStyleAttribute(style, "height", height)
+  setStyleAttribute(style, "max-width", maxWidth)
+  setStyleAttribute(style, "max-height", maxHeight)
+  setStyleAttribute(style, "min-width", minWidth)
+  setStyleAttribute(style, "min-height", minHeight)
 
-  // Spacing - margin
-  if (margin) {
-    style.margin = margin
-  } else {
-    if (marginTop) style['margin-top'] = marginTop
-    if (marginRight) style['margin-right'] = marginRight
-    if (marginBottom) style['margin-bottom'] = marginBottom
-    if (marginLeft) style['margin-left'] = marginLeft
-  }
+  setStyleAttribute(style, "padding", padding)
+  setStyleAttribute(style, "padding-top", paddingTop)
+  setStyleAttribute(style, "padding-right", paddingRight)
+  setStyleAttribute(style, "padding-bottom", paddingBottom)
+  setStyleAttribute(style, "padding-left", paddingLeft)
 
-  // Borders
-  if (border) {
-    style.border = border
-  } else {
-    if (borderTop) style['border-top'] = borderTop
-    if (borderRight) style['border-right'] = borderRight
-    if (borderBottom) style['border-bottom'] = borderBottom
-    if (borderLeft) style['border-left'] = borderLeft
-    if (borderColor) style['border-color'] = borderColor
-    if (borderWidth) style['border-width'] = borderWidth
-    if (borderStyle) style['border-style'] = borderStyle
-  }
+  setStyleAttribute(style, "margin", margin)
+  setStyleAttribute(style, "margin-top", marginTop)
+  setStyleAttribute(style, "margin-right", marginRight)
+  setStyleAttribute(style, "margin-bottom", marginBottom)
+  setStyleAttribute(style, "margin-left", marginLeft)
 
-  // Border radius
-  if (borderRadius) {
-    style['border-radius'] = borderRadius
-  } else {
-    if (borderTopLeftRadius) style['border-top-left-radius'] = borderTopLeftRadius
-    if (borderTopRightRadius) style['border-top-right-radius'] = borderTopRightRadius
-    if (borderBottomLeftRadius) style['border-bottom-left-radius'] = borderBottomLeftRadius
-    if (borderBottomRightRadius) style['border-bottom-right-radius'] = borderBottomRightRadius
-  }
+  setStyleAttribute(style, "border", border)
+  setStyleAttribute(style, "border-color", borderColor)
+  setStyleAttribute(style, "border-width", borderWidth)
+  setStyleAttribute(style, "border-style", borderStyle)
+  setStyleAttribute(style, "border-top", borderTop)
+  setStyleAttribute(style, "border-right", borderRight)
+  setStyleAttribute(style, "border-bottom", borderBottom)
+  setStyleAttribute(style, "border-left", borderLeft)
+
+  setStyleAttribute(style, "border-radius", borderRadius)
+  setStyleAttribute(style, "border-top-left-radius", borderTopLeftRadius)
+  setStyleAttribute(style, "border-top-right-radius", borderTopRightRadius)
+  setStyleAttribute(style, "border-bottom-left-radius", borderBottomLeftRadius)
+  setStyleAttribute(style, "border-bottom-right-radius", borderBottomRightRadius)
 
   return style
 }
 
-/**
- * Convert style object to inline style string
- */
-export function styleToString(style: Record<string, string | undefined>): string {
-  return Object.entries(style)
-    .filter(([_, value]) => value !== undefined && value !== null)
-    .map(([key, value]) => `${key}:${value}`)
-    .join(';')
-}
+const STYLE_ORDER = [
+  "color",
+  "background-color",
+  "background-image",
+  "background-size",
+  "background-position",
+  "background-repeat",
+  "font-size",
+  "font-family",
+  "font-weight",
+  "line-height",
+  "text-align",
+  "text-decoration",
+  "width",
+  "height",
+  "max-width",
+  "max-height",
+  "min-width",
+  "min-height",
+  "padding",
+  "padding-top",
+  "padding-right",
+  "padding-bottom",
+  "padding-left",
+  "margin",
+  "margin-top",
+  "margin-right",
+  "margin-bottom",
+  "margin-left",
+  "border",
+  "border-color",
+  "border-width",
+  "border-style",
+  "border-top",
+  "border-right",
+  "border-bottom",
+  "border-left",
+  "border-radius",
+  "border-top-left-radius",
+  "border-top-right-radius",
+  "border-bottom-left-radius",
+  "border-bottom-right-radius",
+  "border-collapse",
+  "list-style-type",
+  "vertical-align"
+] as const
 
-/**
- * Process child nodes and return HTML strings
- */
-export function processChildNodes(
-  element: Element,
-  processElement: (element: Element) => string | null
-): string[] {
-  const children: string[] = []
-
-  Array.from(element.childNodes).forEach((node) => {
-    if (node.nodeType === 3) {
-      const text = node.textContent
-      if (text) {
-        children.push(text)
-      }
-    } else if (node.nodeType === 1) {
-      const tagName = (node as Element).tagName.toLowerCase()
-      if ([
-        'text', 'image', 'link', 'sevk-link', 'button', 'codeblock', 'divider',
-        'list', 'li', 'paragraph',
-        'strong', 'em', 'b', 'i', 'span', 'a', 'code'
-      ].includes(tagName)) {
-        const childElement = processElement(node as Element)
-        if (childElement) {
-          children.push(childElement)
-        }
-      } else {
-        const childElement = processElement(node as Element)
-        if (childElement) {
-          children.push(childElement)
-        } else {
-          const text = node.textContent
-          if (text) {
-            children.push(text)
-          }
-        }
-      }
+export const styleToString = (
+  style: Record<string, string | undefined>
+): string => {
+  const seen = new Set<string>()
+  const parts: string[] = []
+  for (const key of STYLE_ORDER) {
+    const value = style[key]
+    if (value !== undefined && value !== null && value !== "") {
+      parts.push(`${key}:${value}`)
+      seen.add(key)
     }
-  })
+  }
+  for (const key of Object.keys(style)) {
+    if (seen.has(key)) {
+      continue
+    }
 
-  return children
+    const value = style[key]
+    if (value !== undefined && value !== null && value !== "") {
+      parts.push(`${key}:${value}`)
+    }
+  }
+  return parts.join(";")
 }

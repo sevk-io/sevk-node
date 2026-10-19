@@ -1,182 +1,153 @@
-import { BaseResource } from './base';
-import { generateEmailHTML } from '../markup';
+import { BaseResource } from "./base"
+import { toBulkWirePayload, toWirePayload } from "./emails/payload"
+import type {
+  Email,
+  ScheduledEmailMutationResponse,
+  SendBulkEmailOptions,
+  SendBulkEmailResponse,
+  SendEmailOptions,
+  SendEmailResponse,
+  SendOptions,
+  UpdateScheduledEmailOptions
+} from "./emails/types"
 
 /**
- * Email attachment
+ * Emails resource. Send transactional email and look up email records.
+ *
+ * Access via `sevk.emails`.
  */
-export interface EmailAttachment {
-  /** File name (e.g., "invoice.pdf") */
-  filename: string;
-  /** Base64 encoded file content */
-  content: string;
-  /** MIME type (e.g., "application/pdf", "image/png") */
-  contentType: string;
-}
-
-/**
- * Base email options without content
- */
-interface BaseEmailOptions {
-  from?: string;
-  to: string | string[];
-  subject: string;
-  text?: string;
-  reply_to?: string | string[];
-  cc?: string | string[];
-  bcc?: string | string[];
-  /** Optional attachments (max 10, max 10MB total) */
-  attachments?: EmailAttachment[];
-}
-
-/**
- * Send email options - provide `html`, `markup`, or just `text`
- */
-export interface SendEmailOptions extends BaseEmailOptions {
-  /** HTML content */
-  html?: string;
-  /** Sevk markup content - will be automatically rendered to HTML by the SDK */
-  markup?: string;
-}
-
-export interface SendEmailResponse {
-  id?: string;
-  ids?: string[];
-}
-
-export interface SendBulkEmailResponse {
-  success: number;
-  failed: number;
-  ids: string[];
-  errors?: Array<{
-    index: number;
-    email: string;
-    error: string;
-  }>;
-}
-
-export interface Email {
-  id: string;
-  from: string;
-  to: string | string[];
-  subject: string;
-  html?: string;
-  text?: string;
-  status: string;
-  createdAt: string;
-}
-
 export class Emails extends BaseResource {
+  /**
+   * Look up an email record by id. Returns the persisted record with
+   * lifecycle timestamps and provider ids.
+   *
+   * @param id - Email id, as returned by `send` (single recipient) or
+   *   any entry of `sendBulk`'s `ids`.
+   * @returns The full email record.
+   * @example
+   * ```ts
+   * const email = await sevk.emails.get('a1b2c3d4-...');
+   * console.log(email.status, email.openedAt);
+   * ```
+   */
   async get(id: string): Promise<Email> {
-    const response = await this.client.get<{ email: Email }>(`/emails/${id}`);
-    return response.email;
+    return this.client.get<Email>(`/emails/${id}`)
   }
 
   /**
-   * Send an email
-   * @param data - Email options
-   * @returns Email response with id(s)
+   * Send a transactional email.
+   *
+   * @param data - Body of the send. Provide one of `html`, `text`, or
+   *   `markup` for the content; `markup` is rendered locally before
+   *   reaching the API.
+   * @param options - Per-call options. Pass `{ idempotencyKey }` to
+   *   make the send safe to retry; sevk replays the original response
+   *   for 24 hours when the same key arrives with the same payload.
+   * @returns `{ id }` for a single recipient or `{ ids }` for multiple.
+   * @throws Error on 4xx/5xx (e.g. unverified domain, validation failure,
+   *   rate limit, idempotency conflict).
    * @example
-   * ```typescript
-   * // Send with HTML
+   * Basic send:
+   * ```ts
    * await sevk.emails.send({
+   *   from: 'Example <hello@mail.example.com>',
    *   to: 'user@example.com',
-   *   subject: 'Hello',
-   *   html: '<h1>Hello World</h1>'
+   *   subject: 'Welcome',
+   *   html: '<p>Hi there.</p>'
    * });
-   *
-   * // Send with Sevk markup
+   * ```
+   * @example
+   * Idempotent send (safe to retry without double-sending):
+   * ```ts
+   * await sevk.emails.send(
+   *   { from, to, subject, html },
+   *   { idempotencyKey: `invoice-paid/${invoice.id}` }
+   * );
+   * ```
+   * @example
+   * With attachment:
+   * ```ts
    * await sevk.emails.send({
-   *   to: 'user@example.com',
-   *   subject: 'Hello',
-   *   markup: `
-   *     <section background="#f5f5f5">
-   *       <heading>Hello World</heading>
-   *       <paragraph>Welcome to Sevk!</paragraph>
-   *     </section>
-   *   `
-   * });
-   *
-   * // Send with attachments
-   * await sevk.emails.send({
-   *   to: 'user@example.com',
-   *   subject: 'Invoice',
-   *   html: '<p>Please find your invoice attached.</p>',
+   *   from, to, subject,
+   *   html: '<p>See attached.</p>',
    *   attachments: [{
-   *     filename: 'invoice.pdf',
-   *     content: base64Content,
+   *     filename: 'receipt.pdf',
+   *     content: pdfBuffer.toString('base64'),
    *     contentType: 'application/pdf'
    *   }]
    * });
    * ```
    */
-  async send(data: SendEmailOptions): Promise<SendEmailResponse> {
-    // If markup is provided, render it to HTML and use that instead
-    if (data.markup) {
-      const renderedHtml = generateEmailHTML(data.markup);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { markup, ...rest } = data;
-      return this.client.post<SendEmailResponse>('/emails', {
-        ...rest,
-        html: renderedHtml
-      });
-    }
+  async send(
+    data: SendEmailOptions,
+    options?: SendOptions
+  ): Promise<SendEmailResponse> {
+    return this.client.post<SendEmailResponse>(
+      "/emails",
+      toWirePayload(data),
+      this.idempotencyHeaders(options)
+    )
+  }
 
-    return this.client.post<SendEmailResponse>('/emails', data);
+  /** move an unattempted scheduled email to a new rfc 3339 delivery time. */
+  async update(
+    id: string,
+    data: UpdateScheduledEmailOptions
+  ): Promise<ScheduledEmailMutationResponse> {
+    return this.client.patch<ScheduledEmailMutationResponse>(
+      `/emails/${id}`,
+      data
+    )
+  }
+
+  /** cancel an unattempted scheduled email and release its reserved quota. */
+  async cancel(id: string): Promise<ScheduledEmailMutationResponse> {
+    return this.client.post<ScheduledEmailMutationResponse>(
+      `/emails/${id}/cancel`
+    )
   }
 
   /**
-   * Send multiple emails in bulk
-   * @param emails - Array of email options (max 100)
-   * @returns Bulk send response with success/failure counts
+   * Send up to 100 emails in a single request. Each entry is processed
+   * independently: a failure on entry `i` does not stop entry `i+1`.
+   * The response carries aggregate counters plus per-entry errors.
+   *
+   * @param data - `{ emails: [...] }` array. Max 100 entries.
+   * @param options - Per-call options. For bulk, pick an idempotency
+   *   key that names the whole batch (a job run id, a workspace+date
+   *   pair) since the entire `emails` array is hashed for replay.
+   * @returns Counts of `success`/`failed`, the ids of successful sends
+   *   in input order, and `errors` listing the failures.
+   * @throws Error on 4xx/5xx for the whole request (validation,
+   *   insufficient balance, etc.). Per-entry failures land in
+   *   `result.errors`, not as a thrown error.
    * @example
-   * ```typescript
+   * ```ts
    * const result = await sevk.emails.sendBulk({
    *   emails: [
-   *     {
-   *       to: 'user1@example.com',
-   *       subject: 'Hello',
-   *       html: '<h1>Hello User 1</h1>'
-   *     },
-   *     {
-   *       to: 'user2@example.com',
-   *       subject: 'Hello',
-   *       markup: '<heading>Hello User 2</heading>'
-   *     },
-   *     {
-   *       to: 'user3@example.com',
-   *       subject: 'Invoice',
-   *       html: '<p>Your invoice</p>',
-   *       attachments: [{
-   *         filename: 'invoice.pdf',
-   *         content: base64Content,
-   *         contentType: 'application/pdf'
-   *       }]
-   *     }
+   *     { from, to: 'a@example.com', subject: 'Hi', html: '<p>One</p>' },
+   *     { from, to: 'b@example.com', subject: 'Hi', html: '<p>Two</p>' }
    *   ]
    * });
-   *
-   * console.log(`Success: ${result.success}, Failed: ${result.failed}`);
+   * console.log(`${result.success} sent, ${result.failed} failed`);
    * ```
    */
-  async sendBulk(data: { emails: SendEmailOptions[] }): Promise<SendBulkEmailResponse> {
-    // Process each email - render markup to HTML if needed
-    const processedEmails = await Promise.all(
-      data.emails.map(async (email) => {
-        if (email.markup) {
-          const renderedHtml = generateEmailHTML(email.markup);
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { markup, ...rest } = email;
-          return {
-            ...rest,
-            html: renderedHtml
-          };
-        }
-        return email;
-      })
-    );
+  async sendBulk(
+    data: { emails: SendBulkEmailOptions[] },
+    options?: SendOptions
+  ): Promise<SendBulkEmailResponse> {
+    return this.client.post<SendBulkEmailResponse>(
+      "/emails/bulk",
+      toBulkWirePayload(data),
+      this.idempotencyHeaders(options)
+    )
+  }
 
-    return this.client.post<SendBulkEmailResponse>('/emails/bulk', {
-      emails: processedEmails
-    });
+  private idempotencyHeaders(options?: SendOptions): Record<string, string> | undefined {
+    if (options?.idempotencyKey === undefined) {
+      return undefined
+    }
+
+    return { "Idempotency-Key": options.idempotencyKey }
   }
 }
